@@ -1,0 +1,49 @@
+#!ruby
+require 'smarter_csv'
+require 'mail'
+require 'mustache'
+require 'optparse'
+
+class MailMustache < Mustache
+  # switch escaping and unescaping, since usually we do not wish to escape
+  class Parser < Mustache::Parser
+    alias_method :'scan_tag_{', :scan_tag_
+    alias_method :'scan_tag_&', :scan_tag_
+    alias_method :scan_tag_, :scan_tag_unescaped
+  end
+end
+
+OptionParser.new do |opts|
+  opts.banner = <<EOF
+Usage: csv2mail <template> [<csv>...]
+
+Where <template> is a Mustache mail template file (including the header), and 
+any further arguments are csv files. CSV data is also read from STDIN.
+
+EOF
+
+  opts.on('-h', '--help', 'Prints this help') do
+    puts opts
+    exit
+  end
+
+  opts.on('-d', '--delivery STRING', 'Delivery method ("logger" for STDOUT)') do |d|
+    @delivery = d
+  end
+end.parse!
+
+tmpl = ARGV.shift
+pr = SmarterCSV.process(ARGF, file_enconding: 'r:bom|utf-8') do |rec|
+  r = rec.first
+  must = MailMustache.new
+  must.template_file = tmpl
+  r.each {|k,v| must[k] = v}
+  inp = must.render
+  if (inp.sub!(/\r?\n\r?\n$/, "\r\n\r\n"))
+    m = Mail.new(inp)
+    m.delivery_method @delivery unless @delivery.nil?
+    m.deliver
+  end
+end
+
+
