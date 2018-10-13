@@ -3,6 +3,7 @@ require 'smarter_csv'
 require 'mail'
 require 'mustache'
 require 'optparse'
+require 'pry'
 
 class MailMustache < Mustache
   # switch escaping and unescaping, since usually we do not wish to escape
@@ -39,7 +40,7 @@ pr = SmarterCSV.process(ARGF, file_enconding: 'r:bom|utf-8') do |rec|
   must.template_file = tmpl
   r.each {|k,v| must[k] = v}
   inp = must.render
-  if (inp.sub!(/\r?\n\r?\n$/, "\r\n\r\n"))
+  if (inp.sub!(/\r?\n\r?\n/m, "\r\n\r\n"))
     m = Mail.new(inp)
     m.delivery_method @delivery unless @delivery.nil?
     m.deliver
