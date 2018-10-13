@@ -1,7 +1,7 @@
 # csv2mail
 Mass email based on csv file
 
-##Usage
+## Usage
 
 `csv2mail <template> [<csv>...]`
 
